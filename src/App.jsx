@@ -14,7 +14,6 @@ function App() {
   const programs = {
     hadoop: {
       title: 'Wi-Fi & Network Setup',
-      icon: '📶',
       description: 'Connect to Hadoop clusters and configure network distribution protocols',
       sections: [
         {
@@ -135,7 +134,6 @@ function App() {
     },
     mapreduce: {
       title: 'Bluetooth & Devices',
-      icon: '💙',
       description: 'Search and connect your data processing nodes to form a synchronous MapReduce cluster',
       sections: [
         {
@@ -260,7 +258,6 @@ public class WordCount {
     },
     maxtemp: {
       title: 'Displays & Brightness',
-      icon: '☀️',
       description: 'Analyze thermal data across temporal cycles to identify peak performance metrics',
       sections: [
         { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
@@ -320,7 +317,6 @@ public class MaxTemperature {
     },
     grades: {
       title: 'Users & Privacy',
-      icon: '🎓',
       description: 'Manage student credentials and evaluate academic classifications through automated grading',
       sections: [
         { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
@@ -427,11 +423,8 @@ public class GradeMR {
                 className={`animate-slide-up group text-left relative overflow-hidden`}
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                <div className="h-80 glass rounded-[2rem] p-8 hover-card border-none ring-1 ring-white/10 hover:ring-orange-500/50 flex flex-col justify-between">
+                <div className="h-64 glass rounded-[2rem] p-8 hover-card border-none ring-1 ring-white/10 hover:ring-orange-500/50 flex flex-col justify-between">
                   <div>
-                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform duration-500">
-                      {program.icon}
-                    </div>
                     <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-orange-400 transition-colors">
                       {program.title}
                     </h3>
@@ -500,9 +493,6 @@ public class GradeMR {
                 {copiedCode === 'full-program' ? 'COPIED FULL CODE' : 'COPY FULL PROGRAM'}
               </button>
             )}
-            <div className="w-12 h-12 bg-orange-600/10 rounded-xl flex items-center justify-center text-3xl">
-              {currentProgram.icon}
-            </div>
           </div>
         </div>
       </div>
