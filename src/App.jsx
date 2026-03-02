@@ -316,20 +316,14 @@ public class MaxTemperature {
         { id: 'out', title: 'Step 12: View Results', content: 'Read the final HDFS output', code: 'hdfs dfs -cat /maxtemp/output/part-r-00000' }
       ]
     },
-    grades: {
-      title: 'Users & Privacy',
-      description: 'Manage student credentials and evaluate academic classifications through automated grading',
+    matrix: {
+      title: 'Matrix Operations',
+      description: 'Perform distributed matrix multiplication using MapReduce for large-scale linear algebra operations',
       sections: [
-        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
-        { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
-        matrix: {
-          title: 'Matrix Operations',
-          description: 'Perform distributed matrix multiplication using MapReduce for large-scale linear algebra operations',
-          sections: [
-            { id: 'start', title: 'Step 1: Start Hadoop Services', content: 'Initialize HDFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
-            { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Create a local directory for matrix operations', code: 'mkdir matrix_lab\ncd matrix_lab' },
-            {
-              id: 'write-java', title: 'Step 3: Write MatrixMultiply.java', content: 'Create the MapReduce Java program for matrix multiplication', code: `import java.io.IOException;
+        { id: 'start', title: 'Step 1: Start Hadoop Services', content: 'Initialize HDFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Create a local directory for matrix operations', code: 'mkdir matrix_lab\ncd matrix_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write MatrixMultiply.java', content: 'Create the MapReduce Java program for matrix multiplication', code: `import java.io.IOException;
 import java.util.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -415,24 +409,25 @@ public class MatrixMultiply {
 
     System.exit(job.waitForCompletion(true) ? 0 : 1);
   }
-}` },
-            { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . MatrixMultiply.java' },
-            { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf matrix.jar *' },
-            { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for matrix data', code: 'hdfs dfs -mkdir -p /matrix/input' },
-            { id: 'matrix-data', title: 'Step 7: Create Matrix Data File', content: 'Create local file with matrix A and B values in CSV format', code: 'nano matrix.txt\n\n# Add the following data:\nA,0,0,1\nA,0,1,2\nA,1,0,3\nA,1,1,4\nB,0,0,5\nB,0,1,6\nB,1,0,7\nB,1,1,8' },
-            { id: 'upload', title: 'Step 8: Upload Matrix Data to HDFS', content: 'Copy local matrix file to HDFS', code: 'hdfs dfs -put matrix.txt /matrix/input' },
-            { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that matrix data was uploaded successfully', code: 'hdfs dfs -ls /matrix/input' },
-            { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the matrix multiplication job', code: 'hadoop jar matrix.jar MatrixMultiply /matrix/input /matrix/output' },
-            { id: 'view-result', title: 'Step 11: View Results', content: 'Display the computed output matrix', code: 'hdfs dfs -cat /matrix/output/part-r-00000' }
-          ]
+}` 
         },
-        grades: {
-          title: 'Users & Privacy',
-          description: 'Manage student credentials and evaluate academic classifications through automated grading',
-          sections: [
-            { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
-            { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
-            {
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . MatrixMultiply.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf matrix.jar *' },
+        { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for matrix data', code: 'hdfs dfs -mkdir -p /matrix/input' },
+        { id: 'matrix-data', title: 'Step 7: Create Matrix Data File', content: 'Create local file with matrix A and B values in CSV format', code: 'nano matrix.txt\n\n# Add the following data:\nA,0,0,1\nA,0,1,2\nA,1,0,3\nA,1,1,4\nB,0,0,5\nB,0,1,6\nB,1,0,7\nB,1,1,8' },
+        { id: 'upload', title: 'Step 8: Upload Matrix Data to HDFS', content: 'Copy local matrix file to HDFS', code: 'hdfs dfs -put matrix.txt /matrix/input' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that matrix data was uploaded successfully', code: 'hdfs dfs -ls /matrix/input' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the matrix multiplication job', code: 'hadoop jar matrix.jar MatrixMultiply /matrix/input /matrix/output' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display the computed output matrix', code: 'hdfs dfs -cat /matrix/output/part-r-00000' }
+      ]
+    },
+    grades: {
+      title: 'Users & Privacy',
+      description: 'Manage student credentials and evaluate academic classifications through automated grading',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+        { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
+        {
               id: 'java', title: 'Step 3: Write GradeMR.java', content: 'Develop grading logic MapReduce', code: `import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -488,7 +483,7 @@ public class GradeMR {
             { id: 'out', title: 'Step 10: Results', content: 'Display results', code: 'hdfs dfs -cat /grade/output/part-r-00000' }
           ]
         }
-  }
+    }
 
   const currentProgram = selectedProgram ? programs[selectedProgram] : null
 
