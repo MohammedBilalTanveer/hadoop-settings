@@ -1,58 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './App.css'
 
 function App() {
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [copiedCode, setCopiedCode] = useState(null)
-  const [touchStartX, setTouchStartX] = useState(0)
-
-  // Handle keyboard shortcuts and gestures
-  useEffect(() => {
-    // ESC key to go back
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && selectedProgram) {
-        setSelectedProgram(null)
-      }
-    }
-
-    // Trackpad/scroll gesture - swipe right to go back
-    const handleWheel = (e) => {
-      if (selectedProgram && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        if (e.deltaX < -30) { // Swipe/scroll right
-          setSelectedProgram(null)
-          e.preventDefault()
-        }
-      }
-    }
-
-    // Touch/swipe gesture for mobile and trackpad
-    const handleTouchStart = (e) => {
-      setTouchStartX(e.touches[0].clientX)
-    }
-
-    const handleTouchEnd = (e) => {
-      if (!selectedProgram) return
-      const touchEndX = e.changedTouches[0].clientX
-      const diff = touchEndX - touchStartX
-      if (diff > 100) { // Swipe right > 100px
-        setSelectedProgram(null)
-      }
-    }
-
-    if (selectedProgram) {
-      window.addEventListener('keydown', handleKeyDown)
-      window.addEventListener('wheel', handleWheel, { passive: false })
-      window.addEventListener('touchstart', handleTouchStart)
-      window.addEventListener('touchend', handleTouchEnd)
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('wheel', handleWheel)
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [selectedProgram])
 
   const copyToClipboard = (code, codeId) => {
     navigator.clipboard.writeText(code)
@@ -612,16 +563,11 @@ public class MatrixMultiply {
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setSelectedProgram(null)}
-                title="Go back (ESC key or swipe right)"
-                aria-label="Go back to programs list"
-                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5 group relative"
+                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-700">
-                  ESC to go back
-                </div>
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
