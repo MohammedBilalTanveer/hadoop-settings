@@ -1,9 +1,58 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [copiedCode, setCopiedCode] = useState(null)
+  const [touchStartX, setTouchStartX] = useState(0)
+
+  // Handle keyboard shortcuts and gestures
+  useEffect(() => {
+    // ESC key to go back
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && selectedProgram) {
+        setSelectedProgram(null)
+      }
+    }
+
+    // Trackpad/scroll gesture - swipe right to go back
+    const handleWheel = (e) => {
+      if (selectedProgram && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        if (e.deltaX < -30) { // Swipe/scroll right
+          setSelectedProgram(null)
+          e.preventDefault()
+        }
+      }
+    }
+
+    // Touch/swipe gesture for mobile and trackpad
+    const handleTouchStart = (e) => {
+      setTouchStartX(e.touches[0].clientX)
+    }
+
+    const handleTouchEnd = (e) => {
+      if (!selectedProgram) return
+      const touchEndX = e.changedTouches[0].clientX
+      const diff = touchEndX - touchStartX
+      if (diff > 100) { // Swipe right > 100px
+        setSelectedProgram(null)
+      }
+    }
+
+    if (selectedProgram) {
+      window.addEventListener('keydown', handleKeyDown)
+      window.addEventListener('wheel', handleWheel, { passive: false })
+      window.addEventListener('touchstart', handleTouchStart)
+      window.addEventListener('touchend', handleTouchEnd)
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [selectedProgram])
 
   const copyToClipboard = (code, codeId) => {
     navigator.clipboard.writeText(code)
@@ -316,8 +365,70 @@ public class MaxTemperature {
         { id: 'out', title: 'Step 12: View Results', content: 'Read the final HDFS output', code: 'hdfs dfs -cat /maxtemp/output/part-r-00000' }
       ]
     },
-    matrix: {
-      title: 'Matrix Operations',
+    grades: {
+      title: 'Users & Privacy',
+      description: 'Manage student credentials and evaluate academic classifications through automated grading',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+        { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
+        {
+              id: 'java', title: 'Step 3: Write GradeMR.java', content: 'Develop grading logic MapReduce', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class GradeMR {
+  public static class GradeMapper extends Mapper<Object, Text, Text, Text> {
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      String line = value.toString();
+      String[] parts = line.split(",");
+      String name = parts[0];
+      int marks = Integer.parseInt(parts[1]);
+      String grade;
+      if (marks >= 80) grade = "A";
+      else if (marks >= 60) grade = "B";
+      else if (marks >= 50) grade = "C";
+      else grade = "D";
+      context.write(new Text(name), new Text(grade));
+    }
+  }
+
+  public static class GradeReducer extends Reducer<Text, Text, Text, Text> {
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      for (Text val : values) {
+        context.write(key, val);
+      }
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "Student Grade");
+    job.setJarByClass(GradeMR.class);
+    job.setMapperClass(GradeMapper.class);
+    job.setReducerClass(GradeReducer.class);
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}` },
+            { id: 'compile', title: 'Step 4: Compile', content: 'Build Java binaries', code: 'javac -classpath $(hadoop classpath) -d . GradeMR.java' },
+            { id: 'jar', title: 'Step 5: Create JAR', content: 'Bundle classes', code: 'jar -cvf grade.jar *' },
+            { id: 'data', title: 'Step 7: Create Data', content: 'Setup students student records', code: 'nano students.txt\n\n# Data:\nRavi,85\nAnita,72\nRahul,60\nPriya,55\nKiran,90' },
+            { id: 'hdfs', title: 'Step 8: Upload', content: 'Move data to HDFS', code: 'hdfs dfs -mkdir -p /grade/input\nhdfs dfs -put students.txt /grade/input' },
+            { id: 'exec', title: 'Step 9: Run Job', content: 'Execute grading job', code: 'hadoop jar grade.jar GradeMR /grade/input /grade/output' },
+            { id: 'out', title: 'Step 10: Results', content: 'Display results', code: 'hdfs dfs -cat /grade/output/part-r-00000' }
+          ]
+        },
+        matrix: {
+      title: 'Sound & Audio',
       description: 'Perform distributed matrix multiplication using MapReduce for large-scale linear algebra operations',
       sections: [
         { id: 'start', title: 'Step 1: Start Hadoop Services', content: 'Initialize HDFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
@@ -421,68 +532,6 @@ public class MatrixMultiply {
         { id: 'view-result', title: 'Step 11: View Results', content: 'Display the computed output matrix', code: 'hdfs dfs -cat /matrix/output/part-r-00000' }
       ]
     },
-    grades: {
-      title: 'Users & Privacy',
-      description: 'Manage student credentials and evaluate academic classifications through automated grading',
-      sections: [
-        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
-        { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
-        {
-              id: 'java', title: 'Step 3: Write GradeMR.java', content: 'Develop grading logic MapReduce', code: `import java.io.IOException;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-
-public class GradeMR {
-  public static class GradeMapper extends Mapper<Object, Text, Text, Text> {
-    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-      String line = value.toString();
-      String[] parts = line.split(",");
-      String name = parts[0];
-      int marks = Integer.parseInt(parts[1]);
-      String grade;
-      if (marks >= 80) grade = "A";
-      else if (marks >= 60) grade = "B";
-      else if (marks >= 50) grade = "C";
-      else grade = "D";
-      context.write(new Text(name), new Text(grade));
-    }
-  }
-
-  public static class GradeReducer extends Reducer<Text, Text, Text, Text> {
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-      for (Text val : values) {
-        context.write(key, val);
-      }
-    }
-  }
-
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "Student Grade");
-    job.setJarByClass(GradeMR.class);
-    job.setMapperClass(GradeMapper.class);
-    job.setReducerClass(GradeReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
-  }
-}` },
-            { id: 'compile', title: 'Step 4: Compile', content: 'Build Java binaries', code: 'javac -classpath $(hadoop classpath) -d . GradeMR.java' },
-            { id: 'jar', title: 'Step 5: Create JAR', content: 'Bundle classes', code: 'jar -cvf grade.jar *' },
-            { id: 'data', title: 'Step 7: Create Data', content: 'Setup students student records', code: 'nano students.txt\n\n# Data:\nRavi,85\nAnita,72\nRahul,60\nPriya,55\nKiran,90' },
-            { id: 'hdfs', title: 'Step 8: Upload', content: 'Move data to HDFS', code: 'hdfs dfs -mkdir -p /grade/input\nhdfs dfs -put students.txt /grade/input' },
-            { id: 'exec', title: 'Step 9: Run Job', content: 'Execute grading job', code: 'hadoop jar grade.jar GradeMR /grade/input /grade/output' },
-            { id: 'out', title: 'Step 10: Results', content: 'Display results', code: 'hdfs dfs -cat /grade/output/part-r-00000' }
-          ]
-        }
     }
 
   const currentProgram = selectedProgram ? programs[selectedProgram] : null
@@ -563,11 +612,16 @@ public class GradeMR {
             <div className="flex items-center gap-6">
               <button
                 onClick={() => setSelectedProgram(null)}
-                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+                title="Go back (ESC key or swipe right)"
+                aria-label="Go back to programs list"
+                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5 group relative"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-gray-700">
+                  ESC to go back
+                </div>
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
