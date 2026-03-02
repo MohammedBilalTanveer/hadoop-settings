@@ -265,7 +265,8 @@ public class WordCount {
         { id: 'dir', title: 'Step 3: HDFS Directory', content: 'Create input path in HDFS', code: 'hdfs dfs -mkdir -p /maxtemp/input' },
         { id: 'upload', title: 'Step 4: Upload Data', content: 'Upload local file to HDFS', code: 'hdfs dfs -put -f temperature.txt /maxtemp/input' },
         { id: 'verify-in', title: 'Step 5: Verify Input', content: 'List HDFS input directory', code: 'hdfs dfs -ls /maxtemp/input' },
-        { id: 'java-code', title: 'Step 6: Write MaxTemperature.java', content: 'Develop the Java MapReduce program', code: `import java.io.IOException;
+        {
+          id: 'java-code', title: 'Step 6: Write MaxTemperature.java', content: 'Develop the Java MapReduce program', code: `import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -321,7 +322,118 @@ public class MaxTemperature {
       sections: [
         { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
         { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
-        { id: 'java', title: 'Step 3: Write GradeMR.java', content: 'Develop grading logic MapReduce', code: `import java.io.IOException;
+        matrix: {
+          title: 'Matrix Operations',
+          description: 'Perform distributed matrix multiplication using MapReduce for large-scale linear algebra operations',
+          sections: [
+            { id: 'start', title: 'Step 1: Start Hadoop Services', content: 'Initialize HDFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+            { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Create a local directory for matrix operations', code: 'mkdir matrix_lab\ncd matrix_lab' },
+            {
+              id: 'write-java', title: 'Step 3: Write MatrixMultiply.java', content: 'Create the MapReduce Java program for matrix multiplication', code: `import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MatrixMultiply {
+
+  public static class MatrixMapper extends Mapper<Object, Text, Text, Text> {
+
+    public void map(Object key, Text value, Context context)
+        throws IOException, InterruptedException {
+
+      String[] parts = value.toString().split(",");
+
+      String matrix = parts[0];
+      int row = Integer.parseInt(parts[1]);
+      int col = Integer.parseInt(parts[2]);
+      String val = parts[3];
+
+      if (matrix.equals("A")) {
+        for (int i = 0; i < 2; i++) {
+          context.write(new Text(row + "," + i),
+                        new Text("A," + col + "," + val));
+        }
+      } else {
+        for (int i = 0; i < 2; i++) {
+          context.write(new Text(i + "," + col),
+                        new Text("B," + row + "," + val));
+        }
+      }
+    }
+  }
+
+  public static class MatrixReducer extends Reducer<Text, Text, Text, Text> {
+
+    public void reduce(Text key, Iterable<Text> values, Context context)
+        throws IOException, InterruptedException {
+
+      Map<Integer, Integer> mapA = new HashMap<>();
+      Map<Integer, Integer> mapB = new HashMap<>();
+
+      for (Text val : values) {
+        String[] parts = val.toString().split(",");
+
+        if (parts[0].equals("A")) {
+          mapA.put(Integer.parseInt(parts[1]),
+                   Integer.parseInt(parts[2]));
+        } else {
+          mapB.put(Integer.parseInt(parts[1]),
+                   Integer.parseInt(parts[2]));
+        }
+      }
+
+      int result = 0;
+
+      for (int k : mapA.keySet()) {
+        if (mapB.containsKey(k)) {
+          result += mapA.get(k) * mapB.get(k);
+        }
+      }
+
+      context.write(key, new Text(String.valueOf(result)));
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "Matrix Multiplication");
+
+    job.setJarByClass(MatrixMultiply.class);
+    job.setMapperClass(MatrixMapper.class);
+    job.setReducerClass(MatrixReducer.class);
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}` },
+            { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . MatrixMultiply.java' },
+            { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf matrix.jar *' },
+            { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for matrix data', code: 'hdfs dfs -mkdir -p /matrix/input' },
+            { id: 'matrix-data', title: 'Step 7: Create Matrix Data File', content: 'Create local file with matrix A and B values in CSV format', code: 'nano matrix.txt\n\n# Add the following data:\nA,0,0,1\nA,0,1,2\nA,1,0,3\nA,1,1,4\nB,0,0,5\nB,0,1,6\nB,1,0,7\nB,1,1,8' },
+            { id: 'upload', title: 'Step 8: Upload Matrix Data to HDFS', content: 'Copy local matrix file to HDFS', code: 'hdfs dfs -put matrix.txt /matrix/input' },
+            { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that matrix data was uploaded successfully', code: 'hdfs dfs -ls /matrix/input' },
+            { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the matrix multiplication job', code: 'hadoop jar matrix.jar MatrixMultiply /matrix/input /matrix/output' },
+            { id: 'view-result', title: 'Step 11: View Results', content: 'Display the computed output matrix', code: 'hdfs dfs -cat /matrix/output/part-r-00000' }
+          ]
+        },
+        grades: {
+          title: 'Users & Privacy',
+          description: 'Manage student credentials and evaluate academic classifications through automated grading',
+          sections: [
+            { id: 'start', title: 'Step 1: Start Services', content: 'Initialize Hadoop services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+            { id: 'dir', title: 'Step 2: Workspace', content: 'Setup local grading environment', code: 'mkdir grade_lab\ncd grade_lab' },
+            {
+              id: 'java', title: 'Step 3: Write GradeMR.java', content: 'Develop grading logic MapReduce', code: `import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -368,209 +480,207 @@ public class GradeMR {
     System.exit(job.waitForCompletion(true) ? 0 : 1);
   }
 }` },
-        { id: 'compile', title: 'Step 4: Compile', content: 'Build Java binaries', code: 'javac -classpath $(hadoop classpath) -d . GradeMR.java' },
-        { id: 'jar', title: 'Step 5: Create JAR', content: 'Bundle classes', code: 'jar -cvf grade.jar *' },
-        { id: 'data', title: 'Step 7: Create Data', content: 'Setup students student records', code: 'nano students.txt\n\n# Data:\nRavi,85\nAnita,72\nRahul,60\nPriya,55\nKiran,90' },
-        { id: 'hdfs', title: 'Step 8: Upload', content: 'Move data to HDFS', code: 'hdfs dfs -mkdir -p /grade/input\nhdfs dfs -put students.txt /grade/input' },
-        { id: 'exec', title: 'Step 9: Run Job', content: 'Execute grading job', code: 'hadoop jar grade.jar GradeMR /grade/input /grade/output' },
-        { id: 'out', title: 'Step 10: Results', content: 'Display results', code: 'hdfs dfs -cat /grade/output/part-r-00000' }
-      ]
-    }
+            { id: 'compile', title: 'Step 4: Compile', content: 'Build Java binaries', code: 'javac -classpath $(hadoop classpath) -d . GradeMR.java' },
+            { id: 'jar', title: 'Step 5: Create JAR', content: 'Bundle classes', code: 'jar -cvf grade.jar *' },
+            { id: 'data', title: 'Step 7: Create Data', content: 'Setup students student records', code: 'nano students.txt\n\n# Data:\nRavi,85\nAnita,72\nRahul,60\nPriya,55\nKiran,90' },
+            { id: 'hdfs', title: 'Step 8: Upload', content: 'Move data to HDFS', code: 'hdfs dfs -mkdir -p /grade/input\nhdfs dfs -put students.txt /grade/input' },
+            { id: 'exec', title: 'Step 9: Run Job', content: 'Execute grading job', code: 'hadoop jar grade.jar GradeMR /grade/input /grade/output' },
+            { id: 'out', title: 'Step 10: Results', content: 'Display results', code: 'hdfs dfs -cat /grade/output/part-r-00000' }
+          ]
+        }
   }
 
   const currentProgram = selectedProgram ? programs[selectedProgram] : null
 
   // --- GRID VIEW (HOME) ---
-  if (!selectedProgram) {
-    return (
-      <div className="min-h-screen bg-[#111111] text-gray-100 selection:bg-orange-500/30">
-        {/* Navigation Bar */}
-        <nav className="glass-header sticky top-0 z-50 px-8 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center font-bold text-lg">U</div>
-              <h1 className="text-xl font-bold tracking-tight">Ubuntu Settings</h1>
-            </div>
-            <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-              <span className="hover:text-white cursor-pointer transition-colors">Documentation</span>
-              <span className="hover:text-white cursor-pointer transition-colors">Resources</span>
-              <button className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-full font-medium transition-all">
-                v1.0.4
-              </button>
-            </div>
-          </div>
-        </nav>
-
-        {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-8 pt-16 pb-12">
-          <div className="animate-slide-up">
-            <h2 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              System Settings
-            </h2>
-            <p className="text-lg text-gray-400 max-w-2xl leading-relaxed">
-              Configure your environment and manage big data services through the system control panel.
-            </p>
-          </div>
-        </div>
-
-        {/* Grid Container */}
-        <div className="max-w-7xl mx-auto px-8 pb-32">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.entries(programs).map(([key, program], idx) => (
-              <button
-                key={key}
-                onClick={() => setSelectedProgram(key)}
-                className={`animate-slide-up group text-left relative overflow-hidden`}
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                <div className="h-64 glass rounded-[2rem] p-8 hover-card border-none ring-1 ring-white/10 hover:ring-orange-500/50 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-orange-400 transition-colors">
-                      {program.title}
-                    </h3>
-                    <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
-                      {program.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-orange-500 group-hover:translate-x-1 transition-transform">
-                    GET STARTED
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // --- DETAIL VIEW (PROGRAM PAGE) ---
-  return (
-    <div className="min-h-screen bg-[#111111] text-gray-100">
-      {/* Detail Header */}
-      <div className="glass-header sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-8 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setSelectedProgram(null)}
-              className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">MODULE</span>
-                <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">{selectedProgram}</span>
+  if(!selectedProgram) {
+      return (
+        <div className="min-h-screen bg-[#111111] text-gray-100 selection:bg-orange-500/30">
+          {/* Navigation Bar */}
+          <nav className="glass-header sticky top-0 z-50 px-8 py-4">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center font-bold text-lg">U</div>
+                <h1 className="text-xl font-bold tracking-tight">Ubuntu Settings</h1>
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">{currentProgram.title}</h1>
+              <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
+                <span className="hover:text-white cursor-pointer transition-colors">Documentation</span>
+                <span className="hover:text-white cursor-pointer transition-colors">Resources</span>
+                <button className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-full font-medium transition-all">
+                  v1.0.4
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          {/* Hero Section */}
+          <div className="max-w-7xl mx-auto px-8 pt-16 pb-12">
+            <div className="animate-slide-up">
+              <h2 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                System Settings
+              </h2>
+              <p className="text-lg text-gray-400 max-w-2xl leading-relaxed">
+                Configure your environment and manage big data services through the system control panel.
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {currentProgram.sections.some(s => s.code && (s.id.includes('program') || s.id.includes('write'))) && (
-              <button
-                onClick={() => {
-                  const fullCode = currentProgram.sections
-                    .filter(s => s.code)
-                    .map(s => s.code)
-                    .join('\n\n');
-                  copyToClipboard(fullCode, 'full-program');
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
-                  copiedCode === 'full-program'
-                    ? 'bg-green-500 text-white border-green-500'
-                    : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                {copiedCode === 'full-program' ? 'COPIED FULL CODE' : 'COPY FULL PROGRAM'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Detail Content */}
-      <div className="max-w-5xl mx-auto p-8 animate-slide-up">
-        <div className="space-y-12">
-          {currentProgram.sections.map((section, index) => (
-            <div key={section.id} className="relative pl-12">
-              {/* Vertical Timeline Line */}
-              {index !== currentProgram.sections.length - 1 && (
-                <div className="absolute left-[22px] top-12 bottom-0 w-0.5 bg-gradient-to-b from-orange-500/50 to-transparent"></div>
-              )}
-              
-              {/* Step Number Circle */}
-              <div className="absolute left-0 top-1 w-11 h-11 bg-[#111111] ring-2 ring-orange-500/50 flex items-center justify-center rounded-full z-10">
-                <span className="text-sm font-bold text-orange-500">{index + 1}</span>
-              </div>
-
-              {/* Box Content */}
-              <div className="pb-12">
-                <h3 className="text-xl font-bold text-white mb-4 tracking-tight">{section.title}</h3>
-                
-                {section.content && (
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-6">
-                    <p className="text-gray-400 whitespace-pre-line text-[15px] leading-7">
-                      {section.content}
-                    </p>
-                  </div>
-                )}
-
-                {section.code && (
-                  <div className="group relative">
-                    <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/20 to-purple-500/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative bg-black rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
-                      {/* Code Header */}
-                      <div className="flex items-center justify-between px-6 py-3 bg-[#1a1a1a] border-b border-white/5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/40"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/40"></div>
-                          </div>
-                          <span className="ml-4 text-[10px] font-black tracking-widest text-gray-500 uppercase">
-                            {section.id.includes('program') || section.id.includes('write') ? 'Java Class' : 'Bash Executable'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => copyToClipboard(section.code, section.id)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                            copiedCode === section.id
-                              ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                              : 'bg-white/5 text-gray-400 border-white/5 hover:text-white hover:bg-white/10'
-                          }`}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={copiedCode === section.id ? "M5 13l4 4L19 7" : "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"} />
-                          </svg>
-                          {copiedCode === section.id ? 'COPIED' : 'COPY'}
-                        </button>
-                      </div>
-                      <pre className="p-6 text-gray-300 text-[13px] leading-6 overflow-x-auto font-mono scrollbar-none">
-                        <code>{section.code}</code>
-                      </pre>
+          {/* Grid Container */}
+          <div className="max-w-7xl mx-auto px-8 pb-32">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(programs).map(([key, program], idx) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedProgram(key)}
+                  className={`animate-slide-up group text-left relative overflow-hidden`}
+                  style={{ animationDelay: `${idx * 0.1}s` }}
+                >
+                  <div className="h-64 glass rounded-[2rem] p-8 hover-card border-none ring-1 ring-white/10 hover:ring-orange-500/50 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-orange-400 transition-colors">
+                        {program.title}
+                      </h3>
+                      <p className="text-gray-400 text-sm leading-relaxed line-clamp-3">
+                        {program.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-orange-500 group-hover:translate-x-1 transition-transform">
+                      GET STARTED
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
                     </div>
                   </div>
-                )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+  // --- DETAIL VIEW (PROGRAM PAGE) ---
+  return(
+    <div className = "min-h-screen bg-[#111111] text-gray-100" >
+        {/* Detail Header */ }
+        < div className = "glass-header sticky top-0 z-50" >
+          <div className="max-w-5xl mx-auto px-8 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setSelectedProgram(null)}
+                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-all border border-white/5"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">MODULE</span>
+                  <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">{selectedProgram}</span>
+                </div>
+                <h1 className="text-2xl font-bold text-white tracking-tight">{currentProgram.title}</h1>
               </div>
             </div>
-          ))}
-        </div>
-        
-        {/* Footer */}
-        <div className="mt-20 pt-8 border-t border-white/5 text-center text-gray-600 text-xs font-medium tracking-widest uppercase">
-          End of Instructions • Big Data Analytics Laboratory
-        </div>
+            <div className="flex items-center gap-4">
+              {currentProgram.sections.some(s => s.code && (s.id.includes('program') || s.id.includes('write'))) && (
+                <button
+                  onClick={() => {
+                    const fullCode = currentProgram.sections
+                      .filter(s => s.code)
+                      .map(s => s.code)
+                      .join('\n\n');
+                    copyToClipboard(fullCode, 'full-program');
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${copiedCode === 'full-program'
+                      ? 'bg-green-500 text-white border-green-500'
+                      : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
+                    }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {copiedCode === 'full-program' ? 'COPIED FULL CODE' : 'COPY FULL PROGRAM'}
+                </button>
+              )}
+            </div>
+          </div>
+      </div >
+
+    {/* Detail Content */ }
+    < div className = "max-w-5xl mx-auto p-8 animate-slide-up" >
+      <div className="space-y-12">
+        {currentProgram.sections.map((section, index) => (
+          <div key={section.id} className="relative pl-12">
+            {/* Vertical Timeline Line */}
+            {index !== currentProgram.sections.length - 1 && (
+              <div className="absolute left-[22px] top-12 bottom-0 w-0.5 bg-gradient-to-b from-orange-500/50 to-transparent"></div>
+            )}
+
+            {/* Step Number Circle */}
+            <div className="absolute left-0 top-1 w-11 h-11 bg-[#111111] ring-2 ring-orange-500/50 flex items-center justify-center rounded-full z-10">
+              <span className="text-sm font-bold text-orange-500">{index + 1}</span>
+            </div>
+
+            {/* Box Content */}
+            <div className="pb-12">
+              <h3 className="text-xl font-bold text-white mb-4 tracking-tight">{section.title}</h3>
+
+              {section.content && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-6">
+                  <p className="text-gray-400 whitespace-pre-line text-[15px] leading-7">
+                    {section.content}
+                  </p>
+                </div>
+              )}
+
+              {section.code && (
+                <div className="group relative">
+                  <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/20 to-purple-500/20 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative bg-black rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+                    {/* Code Header */}
+                    <div className="flex items-center justify-between px-6 py-3 bg-[#1a1a1a] border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/40"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/40"></div>
+                        </div>
+                        <span className="ml-4 text-[10px] font-black tracking-widest text-gray-500 uppercase">
+                          {section.id.includes('program') || section.id.includes('write') ? 'Java Class' : 'Bash Executable'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(section.code, section.id)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${copiedCode === section.id
+                            ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                            : 'bg-white/5 text-gray-400 border-white/5 hover:text-white hover:bg-white/10'
+                          }`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={copiedCode === section.id ? "M5 13l4 4L19 7" : "M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"} />
+                        </svg>
+                        {copiedCode === section.id ? 'COPIED' : 'COPY'}
+                      </button>
+                    </div>
+                    <pre className="p-6 text-gray-300 text-[13px] leading-6 overflow-x-auto font-mono scrollbar-none">
+                      <code>{section.code}</code>
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+
+  {/* Footer */ }
+  <div className="mt-20 pt-8 border-t border-white/5 text-center text-gray-600 text-xs font-medium tracking-widest uppercase">
+    End of Instructions • Big Data Analytics Laboratory
+  </div>
+      </div >
+    </div >
   )
 }
 
