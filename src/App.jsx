@@ -483,6 +483,587 @@ public class MatrixMultiply {
         { id: 'view-result', title: 'Step 11: View Results', content: 'Display the computed output matrix', code: 'hdfs dfs -cat /matrix/output/part-r-00000' }
       ]
     },
+    electricity: {
+      title: 'Power & Battery',
+      description: 'Harness energy optimization through distributed thermal analysis of consumption cycles',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\nJps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for electricity analysis', code: 'mkdir electricity_lab\ncd electricity_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write MaxElectricity.java', content: 'Create the MapReduce program for maximum electricity analysis', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MaxElectricity {
+
+  // Mapper Class
+  public static class ElectricityMapper
+      extends Mapper<Object, Text, Text, IntWritable> {
+
+    public void map(Object key, Text value, Context context)
+        throws IOException, InterruptedException {
+
+      String line = value.toString();
+      String[] parts = line.split(",");
+
+      String year = parts[0];
+      int consumption = Integer.parseInt(parts[2]);
+
+      context.write(new Text(year),
+                    new IntWritable(consumption));
+    }
+  }
+
+  // Reducer Class
+  public static class ElectricityReducer
+      extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    public void reduce(Text key, Iterable<IntWritable> values,
+                       Context context)
+        throws IOException, InterruptedException {
+
+      int max = Integer.MIN_VALUE;
+
+      for (IntWritable val : values) {
+        if (val.get() > max) {
+          max = val.get();
+        }
+      }
+
+      context.write(key, new IntWritable(max));
+    }
+  }
+
+  // Main Method
+  public static void main(String[] args) throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "Max Electricity Consumption");
+
+    job.setJarByClass(MaxElectricity.class);
+    job.setMapperClass(ElectricityMapper.class);
+    job.setReducerClass(ElectricityReducer.class);
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . MaxElectricity.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf electricity.jar *' },
+        { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for electricity data', code: 'hdfs dfs -mkdir -p /electricity/input' },
+        {
+          id: 'data', title: 'Step 7: Create Electricity Data File', content: 'Create local file with year, month, and consumption values in CSV format', code: 'nano electricity.txt\n\n# Add the following data:\n2019,Jan,200\n2019,Feb,180\n2019,Mar,220\n2020,Jan,300\n2020,Feb,250\n2020,Mar,275\n2021,Jan,400\n2021,Feb,350'
+        },
+        { id: 'upload', title: 'Step 8: Upload Electricity Data to HDFS', content: 'Copy local electricity file to HDFS', code: 'hdfs dfs -put electricity.txt /electricity/input' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that electricity data was uploaded successfully', code: 'hdfs dfs -ls /electricity/input' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the maximum electricity consumption job', code: 'hadoop jar electricity.jar MaxElectricity /electricity/input /electricity/output' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display the maximum electrical consumption by year', code: 'hdfs dfs -cat /electricity/output/part-r-00000' }
+      ]
+    },
+    weather: {
+      title: 'Time & Date',
+      description: 'Synchronize temporal climate patterns across global coordinates and environmental cycles',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\nJps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for weather analysis', code: 'mkdir weather_lab\ncd weather_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write WeatherAnalysis.java', content: 'Create the MapReduce program for weather classification', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WeatherAnalysis {
+
+  // Mapper Class
+  public static class WeatherMapper
+      extends Mapper<Object, Text, Text, Text> {
+
+    public void map(Object key, Text value, Context context)
+        throws IOException, InterruptedException {
+
+      String line = value.toString();
+      String[] parts = line.split(",");
+
+      String date = parts[0];
+      int temperature = Integer.parseInt(parts[1]);
+
+      if (temperature >= 30) {
+        context.write(new Text(date), new Text("Sunny"));
+      } else {
+        context.write(new Text(date), new Text("Cool"));
+      }
+    }
+  }
+
+  // Reducer Class
+  public static class WeatherReducer
+      extends Reducer<Text, Text, Text, Text> {
+
+    public void reduce(Text key, Iterable<Text> values,
+                       Context context)
+        throws IOException, InterruptedException {
+
+      for (Text val : values) {
+        context.write(key, val);
+      }
+    }
+  }
+
+  // Main Method
+  public static void main(String[] args) throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "Weather Analysis");
+
+    job.setJarByClass(WeatherAnalysis.class);
+    job.setMapperClass(WeatherMapper.class);
+    job.setReducerClass(WeatherReducer.class);
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
+
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . WeatherAnalysis.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf weather.jar *' },
+        { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for weather data', code: 'hdfs dfs -mkdir -p /weather/input' },
+        {
+          id: 'data', title: 'Step 7: Create Weather Data File', content: 'Create local file with date and temperature values in CSV format', code: 'nano weather.txt\n\n# Add the following data:\n01-01-2023,35\n02-01-2023,22\n03-01-2023,31\n04-01-2023,18\n05-01-2023,40'
+        },
+        { id: 'upload', title: 'Step 8: Upload Weather Data to HDFS', content: 'Copy local weather file to HDFS', code: 'hdfs dfs -put weather.txt /weather/input' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that weather data was uploaded successfully', code: 'hdfs dfs -ls /weather/input' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the weather analysis job', code: 'hadoop jar weather.jar WeatherAnalysis /weather/input /weather/output' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display weather classification results by date', code: 'hdfs dfs -cat /weather/output/part-r-00000' }
+      ]
+    },
+    sales: {
+      title: 'System & Storage',
+      description: 'Organize transactional records and merchandise distribution across geographic boundaries',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\nJps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for sales analysis', code: 'mkdir sales_lab\ncd sales_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write CountrySales.java', content: 'Create the MapReduce program for country-wise sales count', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class CountrySales {
+
+  // Mapper Class
+  public static class SalesMapper
+      extends Mapper<Object, Text, Text, IntWritable> {
+
+    private final static IntWritable one = new IntWritable(1);
+    private Text country = new Text();
+
+    public void map(Object key, Text value, Context context)
+        throws IOException, InterruptedException {
+
+      String line = value.toString();
+
+      // Skip header line
+      if (line.startsWith("Transaction_Date"))
+        return;
+
+      String[] fields = line.split(",");
+
+      // Country is 8th column (index 7)
+      country.set(fields[7]);
+
+      context.write(country, one);
+    }
+  }
+
+  // Reducer Class
+  public static class SalesReducer
+      extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    public void reduce(Text key, Iterable<IntWritable> values,
+                       Context context)
+        throws IOException, InterruptedException {
+
+      int sum = 0;
+
+      for (IntWritable val : values) {
+        sum += val.get();
+      }
+
+      context.write(key, new IntWritable(sum));
+    }
+  }
+
+  // Main Method
+  public static void main(String[] args) throws Exception {
+
+    Configuration conf = new Configuration();
+    Job job = Job.getInstance(conf, "Country Product Sales Count");
+
+    job.setJarByClass(CountrySales.class);
+    job.setMapperClass(SalesMapper.class);
+    job.setReducerClass(SalesReducer.class);
+
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+
+    FileInputFormat.addInputPath(job, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+    System.exit(job.waitForCompletion(true) ? 0 : 1);
+  }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . CountrySales.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf sales.jar *' },
+        { id: 'hdfs-dir', title: 'Step 6: Create HDFS Input Directory', content: 'Create input path in HDFS for sales data', code: 'hdfs dfs -mkdir -p /sales/input' },
+        {
+          id: 'data', title: 'Step 7: Create Sales Data File', content: 'Create local file with transaction and customer details', code: 'nano sales.txt\n\n# Add the following data:\nTransaction_Date,Product,Price,Payment_Type,Name,City,State,Country,Account_Created,Last_Login,Latitude,Longitude\n2023-01-01,Laptop,500,Card,Ravi,Bangalore,KA,India,2022-01-01,2023-01-01,12.9,77.5\n2023-01-02,Phone,300,Cash,John,New York,NY,USA,2021-05-01,2023-01-02,40.7,-74.0\n2023-01-03,Tablet,200,Card,Asha,Delhi,DL,India,2020-03-01,2023-01-03,28.6,77.2\n2023-01-04,Laptop,600,Card,Smith,London,NA,UK,2022-07-01,2023-01-04,51.5,-0.1\n2023-01-05,Phone,250,Cash,Ramesh,Mumbai,MH,India,2021-08-01,2023-01-05,19.0,72.8'
+        },
+        { id: 'upload', title: 'Step 8: Upload Sales Data to HDFS', content: 'Copy local sales file to HDFS', code: 'hdfs dfs -put sales.txt /sales/input' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that sales data was uploaded successfully', code: 'hdfs dfs -ls /sales/input' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the country-wise sales count job', code: 'hadoop jar sales.jar CountrySales /sales/input /sales/output' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display sales count by country', code: 'hdfs dfs -cat /sales/output/part-r-00000' }
+      ]
+    },
+    movies: {
+      title: 'Applications',
+      description: 'Discover content associations through intelligent tag aggregation and media classification systems',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\nJps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for movie tag analysis', code: 'mkdir movie_tags\ncd movie_tags' },
+        {
+          id: 'write-java', title: 'Step 3: Write MovieTags.java', content: 'Create the MapReduce program for aggregating movie tags', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class MovieTags {
+
+    // Mapper Class
+    public static class TagMapper extends Mapper<Object, Text, Text, Text> {
+
+        private Text movieId = new Text();
+        private Text tag = new Text();
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String line = value.toString();
+
+            // Skip header
+            if (line.contains("userId")) return;
+
+            String[] fields = line.split(",");
+
+            if (fields.length >= 3) {
+                movieId.set(fields[1]);   // movieId
+                tag.set(fields[2]);       // tag
+                context.write(movieId, tag);
+            }
+        }
+    }
+
+    // Reducer Class
+    public static class TagReducer extends Reducer<Text, Text, Text, Text> {
+
+        public void reduce(Text key, Iterable<Text> values, Context context)
+                throws IOException, InterruptedException {
+
+            StringBuilder tagList = new StringBuilder();
+
+            for (Text val : values) {
+                if (tagList.length() > 0)
+                    tagList.append(",");
+                tagList.append(val.toString());
+            }
+
+            context.write(key, new Text(tagList.toString()));
+        }
+    }
+
+    // Driver Class
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Movie Tags");
+
+        job.setJarByClass(MovieTags.class);
+
+        job.setMapperClass(TagMapper.class);
+        job.setReducerClass(TagReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . MovieTags.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf movietags.jar *' },
+        {
+          id: 'data', title: 'Step 6: Create Movie Tags Data File', content: 'Create local file with MovieLens tag data in CSV format', code: 'nano tags.csv\n\n# Add the following data:\nuserId,movieId,tag,timestamp\n2,60756,funny,1445714994\n2,60756,Highly entertaining,1445714996\n2,89774,action,1445715200\n3,60756,comedy,1445715300\n4,89774,thriller,1445715400\n5,60756,drama,1445715500'
+        },
+        { id: 'hdfs-dir', title: 'Step 7: Create HDFS Directory and Upload', content: 'Create HDFS path and upload movie data', code: 'hdfs dfs -mkdir /moviedata\nhdfs dfs -put tags.csv /moviedata' },
+        { id: 'verify-input', title: 'Step 8: Verify Input in HDFS', content: 'Check that movie tags data was uploaded successfully', code: 'hdfs dfs -ls /moviedata' },
+        { id: 'run-job', title: 'Step 9: Execute MapReduce Job', content: 'Run the movie tags aggregation job', code: 'hadoop jar movietags.jar MovieTags /moviedata /movieoutput' },
+        { id: 'view-result', title: 'Step 10: View Results', content: 'Display aggregated tags for each movie', code: 'hdfs dfs -cat /movieoutput/part-r-00000' }
+      ]
+    },
+    books: {
+      title: 'Accessibility',
+      description: 'Chronicle publication patterns through temporal archive analysis and content frequency metrics',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\njps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for book analysis', code: 'mkdir books_lab\ncd books_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write BookYearFrequency.java', content: 'Create the MapReduce program for book publication frequency analysis', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class BookYearFrequency {
+
+    // Mapper Class
+    public static class YearMapper extends Mapper<Object, Text, Text, IntWritable> {
+
+        private Text year = new Text();
+        private IntWritable one = new IntWritable(1);
+
+        public void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+
+            String line = value.toString();
+
+            if(line.contains("Title")) return; // Skip header
+
+            String[] fields = line.split(",");
+
+            if(fields.length >= 3) {
+                year.set(fields[2]); // Year column
+                context.write(year, one);
+            }
+        }
+    }
+
+    // Reducer Class
+    public static class YearReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+        int maxCount = 0;
+        String maxYear = "";
+
+        public void reduce(Text key, Iterable<IntWritable> values, Context context)
+                throws IOException, InterruptedException {
+
+            int sum = 0;
+
+            for(IntWritable val : values) {
+                sum += val.get();
+            }
+
+            context.write(key, new IntWritable(sum));
+
+            if(sum > maxCount) {
+                maxCount = sum;
+                maxYear = key.toString();
+            }
+        }
+
+        protected void cleanup(Context context)
+                throws IOException, InterruptedException {
+
+            context.write(new Text("Maximum books published in: " + maxYear),
+                    new IntWritable(maxCount));
+        }
+    }
+
+    // Driver Code
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "Book Year Frequency");
+
+        job.setJarByClass(BookYearFrequency.class);
+
+        job.setMapperClass(YearMapper.class);
+        job.setReducerClass(YearReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath `hadoop classpath` -d . BookYearFrequency.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf bookyear.jar *' },
+        { id: 'hdfs-dir', title: 'Step 6: Create HDFS Directory', content: 'Create HDFS path for book data', code: 'hdfs dfs -mkdir /bookdata' },
+        {
+          id: 'data', title: 'Step 7: Create Book Data File', content: 'Create local file with book publication details in CSV format', code: 'nano books.csv\n\n# Add the following data:\nTitle,AuthorPublished,Year,Author,Country,Language,Pages\nBookA,2018,2018,John,USA,English,250\nBookB,2019,2019,Smith,UK,English,300\nBookC,2018,2018,Ravi,India,English,200\nBookD,2020,2020,Lee,China,Chinese,320\nBookE,2019,2019,Kumar,India,Hindi,280\nBookF,2018,2018,Ana,Brazil,Portuguese,210'
+        },
+        { id: 'upload', title: 'Step 8: Upload Book Data to HDFS', content: 'Copy local book file to HDFS', code: 'hdfs dfs -put books.csv /bookdata' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that book data was uploaded successfully', code: 'hdfs dfs -ls /bookdata' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the book year frequency analysis job', code: 'hadoop jar bookyear.jar BookYearFrequency /bookdata /bookoutput' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display book publishing frequency by year and maximum year', code: 'hdfs dfs -cat /bookoutput/part-r-00000' }
+      ]
+    },
+    uber: {
+      title: 'Location Services',
+      description: 'Track mobility metrics across distributed service platforms and transportation demand cycles',
+      sections: [
+        { id: 'start', title: 'Step 1: Start Services', content: 'Initialize DFS and YARN services', code: 'start-dfs.sh\nstart-yarn.sh\nJps' },
+        { id: 'mkdir', title: 'Step 2: Create Working Directory', content: 'Set up local directory for Uber data analysis', code: 'mkdir uber_lab\ncd uber_lab' },
+        {
+          id: 'write-java', title: 'Step 3: Write UberTrips.java', content: 'Create the MapReduce program for Uber trip analysis', code: `import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class UberTrips {
+
+    // Mapper
+    public static class UberMapper
+        extends Mapper<Object, Text, Text, IntWritable>{
+
+        private Text baseDate = new Text();
+
+        public void map(Object key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+            String line = value.toString();
+            String fields[] = line.split(",");
+
+            String base = fields[0];
+            String date = fields[1];
+            int trips = Integer.parseInt(fields[3]);
+
+            baseDate.set(base + " " + date);
+
+            context.write(baseDate, new IntWritable(trips));
+        }
+    }
+
+    // Reducer
+    public static class UberReducer
+        extends Reducer<Text, IntWritable, Text, IntWritable>{
+
+        public void reduce(Text key, Iterable<IntWritable> values,
+            Context context) throws IOException, InterruptedException {
+
+            int sum = 0;
+
+            for(IntWritable val : values){
+                sum += val.get();
+            }
+
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    // Driver Class
+    public static void main(String[] args) throws Exception {
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Uber Trips Analysis");
+
+        job.setJarByClass(UberTrips.class);
+        job.setMapperClass(UberMapper.class);
+        job.setReducerClass(UberReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job,new Path(args[0]));
+        FileOutputFormat.setOutputPath(job,new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true)?0:1);
+    }
+}` },
+        { id: 'compile', title: 'Step 4: Compile Java Program', content: 'Compile with Hadoop classpath', code: 'javac -classpath $(hadoop classpath) -d . UberTrips.java' },
+        { id: 'jar', title: 'Step 5: Create JAR File', content: 'Package compiled classes into JAR', code: 'jar -cvf uber.jar *' },
+        {
+          id: 'data', title: 'Step 6: Create Uber Data File', content: 'Create local file with dispatching base, date, active vehicles, and trips data in CSV format', code: 'nano uber.txt\n\n# Columns: dispatching_base_number, date, active_vehicles, trips\n# Add the following data:\nB02512,2014-04-01,190,1132\nB02512,2014-04-02,210,1200\nB02598,2014-04-01,150,980\nB02598,2014-04-02,170,1050\nB02617,2014-04-01,180,1100'
+        },
+        { id: 'hdfs-dir', title: 'Step 7: Create HDFS Input Directory', content: 'Create input path in HDFS for Uber data', code: 'hdfs dfs -mkdir -p /uber/input' },
+        { id: 'upload', title: 'Step 8: Upload Uber Data to HDFS', content: 'Copy local Uber file to HDFS', code: 'hdfs dfs -put uber.txt /uber/input' },
+        { id: 'verify-input', title: 'Step 9: Verify Input in HDFS', content: 'Check that Uber data was uploaded successfully', code: 'hdfs dfs -ls /uber/input' },
+        { id: 'run-job', title: 'Step 10: Execute MapReduce Job', content: 'Run the Uber trips analysis job', code: 'hadoop jar uber.jar UberTrips /uber/input /uber/output' },
+        { id: 'view-result', title: 'Step 11: View Results', content: 'Display trips count by base and date', code: 'hdfs dfs -cat /uber/output/part-r-00000' }
+      ]
+    },
+    spark: {
+      title: 'Background Processes',
+      description: 'Execute parallel computation workflows for accelerated analytics and in-memory data transformation',
+      sections: [
+        { id: 'install-python', title: 'Step 1: Update System and Install Python3', content: 'Update package manager and install Python3 with pip', code: 'sudo apt update\n\nsudo apt install python3-pip -y' },
+        { id: 'venv', title: 'Step 2: Create and Activate Virtual Environment', content: 'Set up Python virtual environment for Spark', code: 'sudo apt install python3-venv -y\n\n# Create a virtual environment\npython3 -m venv spark_env\n\n# Activate virtual environment\nsource spark_env/bin/activate' },
+        { id: 'install-spark', title: 'Step 3: Install PySpark', content: 'Install Apache Spark Python library', code: 'pip install pyspark' },
+        {
+          id: 'create-input', title: 'Step 4: Create Input Data File', content: 'Create a local text file with sample data', code: 'nano input.txt\n\n# Add the following data:\nhello world hello spark hadoop'
+        },
+        {
+          id: 'write-python', title: 'Step 5: Write WordCount Python Program', content: 'Create PySpark word count application', code: `nano wordcount.py
+
+# Add the following python code:
+from pyspark import SparkContext
+
+sc = SparkContext("local", "WordCount")
+
+# Read file
+data = sc.textFile("input.txt")
+
+# Split into words
+words = data.flatMap(lambda line: line.split(" "))
+
+# Create (word,1)
+pairs = words.map(lambda word: (word, 1))
+
+# Count words
+counts = pairs.reduceByKey(lambda a, b: a + b)
+
+# Save output
+counts.saveAsTextFile("output")` },
+        { id: 'submit', title: 'Step 6: Submit Spark Job', content: 'Execute the PySpark word count application', code: 'spark-submit wordcount.py' },
+        { id: 'view-output', title: 'Step 7: View Results', content: 'Display the word count output', code: 'cat output/part-00000' }
+      ]
+    },
     }
 
   const currentProgram = selectedProgram ? programs[selectedProgram] : null
